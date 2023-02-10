@@ -1,0 +1,79 @@
+---
+title: "遺伝研スパコンでApptainer (Singularity)を使用する"
+author: "ktetsufumi"
+date: "2023-02-10"
+format: html
+---
+
+## コンテナとは
+
+他人の開発環境をそのまま使うこと
+
+<a href="https://hacknote.jp/archives/56650/">
+<img src="https://hacknote.jp/wp-content/uploads/2020/03/docker_image_container.png" width="240">
+<figcaption class="url">
+https://hacknote.jp/archives/56650/<br>dockerコンテナのイメージ
+</figcaption>
+</a>
+</figure>
+✔　インストールが不要  
+✔　バージョンエラーに悩まされない
+
+## 遺伝研スパコン内にあるsingularityファイルを使用する
+
+Transdecoderを使ってみる。  
+(2023/02/10現在)   /usr/local/biotools/t/transdecoder:5.5.0--pl526_2 が存在するので、これを使う
+
+```
+#!/bin/bash
+#$ -S /bin/bash
+#$ -cwd
+singularity exec -e /usr/local/biotools/t/transdecoder:5.5.0--pl526_2 \
+TransDecoder.LongOrfs -t sample.fasta
+```
+
+## dockerhubからsingularityファイルを作成して使用する
+
+BUSCOを使ってみる  　　
+最新のdockerコンテナを見つける    
+(2023/02/10現在) v5.4.5が最新　　
+
+```
+# singularity build 時にメモリが足りないというエラーが出るので、qlogin 時にあらかじめメモリ量を指定する。
+$ qlogin -l s_vmem=20G -l mem_req=20G
+
+# Docker Hub 上の Docker コンテナをユーザー権限で Apptainer (Sigularity) イメージファイルを作成する(名前は適当で良い)。
+$ singularity build busco.sif docker://ezlabgva/busco:v5.4.5_cv1  
+INFO:    Starting build...
+Getting image source signatures
+Copying blob a3ed95caeb02 done
+Copying blob da52c665ae6a done
+Copying blob 64e68601dbc1 done
+Copying blob bffdb47af6a2 done
+Copying blob f7ec5a41d630 done
+Copying blob 230a319b6d10 done
+Copying blob f60bc18da710 done
+Copying blob 9cb54d7b1923 done
+Copying config c28f8d9a49 done
+Writing manifest to image destination
+Storing signatures
+2023/02/10 14:31:00  info unpack layer: sha256:f7ec5a41d630a33a2d1db59b95d89d93de7ae5a619a3a8571b78457e48266eba
+2023/02/10 14:31:00  info unpack layer: sha256:da52c665ae6a3c231308941f65380e35950ef6c10aca2d47181c8ebf4915f6f1
+2023/02/10 14:31:01  info unpack layer: sha256:bffdb47af6a29dd80fefdab2010f1c359c84e20797d0e22385589287bd992ace
+2023/02/10 14:31:01  info unpack layer: sha256:230a319b6d10d18fb27a90920929d39624ae864f9d1b1ce2b82f579b084dcd94
+2023/02/10 14:31:01  info unpack layer: sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4
+2023/02/10 14:31:01  info unpack layer: sha256:64e68601dbc1a9a609d2ca6c967b77770ac9961ceda6caaffa57db77744f6657
+2023/02/10 14:31:19  info unpack layer: sha256:f60bc18da710705cf7003133b4f514bbc383bc471648bc1ee3ec6b4b0d4dab9a
+2023/02/10 14:31:19  info unpack layer: sha256:9cb54d7b1923258c07bc9a45b11239cba4e0987fa157c7d9ec9c6d46631408de
+INFO:    Creating SIF file...
+INFO:    Build complete: busco.sif
+
+# 使用する
+
+#!/bin/bash
+#$ -S /bin/bash
+#$ -cwd
+singularity run busco.sif busco -m geno -i pilon.fasta -o out_dir_pilon -l cyprinodontiformes_odb10 -c 20
+```
+
+
